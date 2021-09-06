@@ -8,11 +8,11 @@ ANSIBLE_METADATA = {
 
 DOCUMENTATION = """
 ---
-module: gns3_project_file
-short_description: Updates/creates a file on a project directory
+module: gns3_nodes_inventory
+short_description: Retrieves GNS3 a project nodes console information
 version_added: '2.8'
 description:
-    - "Updates/creates a file on a project directory on the GNS3 server"
+    - "Retrieves nodes inventory information from a GNS3 project"
 requirements: [ gns3fy ]
 author:
     - David Flores (@davidban77)
@@ -43,33 +43,28 @@ options:
         description:
             - Project ID
         type: str
-    data:
-        description:
-            - The text to insert.
-        type: str
-    dest:
-        description:
-            - Node destination path. Like 'etc/network/interfaces'
-        type: str
-        required: true
-    state:
-        description:
-            - If the file should present or absent
-        type: str
-        choices: ['present', 'absent']
-        default: present
 """
 
 EXAMPLES = """
 # Retrieve the GNS3 server version
 - name: Get the server version
-  gns3_project_file:
+  gns3_nodes_inventory:
     url: http://localhost
     port: 3080
     project_name: test_lab
-    data: |
-        Hello this is a README!
-    dest: README.txt
+  register: nodes_inventory
+
+- debug: var=nodes_inventory
+"""
+
+RETURN = """
+nodes_inventory:
+    description: Dictionary that contain: name, server, console_port, console_type,
+    type and template of each node
+    type: dict
+total_nodes:
+    description: Total number of nodes
+    type: int
 """
 import traceback
 
@@ -85,14 +80,6 @@ except ImportError:
 from ansible.module_utils.basic import AnsibleModule, missing_required_lib
 
 
-def project_write_file(module, project, path, data):
-    "Writes text data into specified path of the project"
-    try:
-        project.write_file(path=path, data=data)
-    except Exception as err:
-        module.fail_json(msg=str(err), exception=traceback.format_exc())
-
-
 def main():
     module = AnsibleModule(
         argument_spec=dict(
@@ -102,15 +89,13 @@ def main():
             password=dict(type="str", default=None, no_log=True),
             project_name=dict(type="str", default=None),
             project_id=dict(type="str", default=None),
-            data=dict(type="str", default=None),
-            dest=dict(type="str", required=True),
-            state=dict(type="str", choices=["present", "absent"], default="present"),
         ),
         required_one_of=[["project_name", "project_id"]],
     )
     if not HAS_GNS3FY:
         module.fail_json(msg=missing_required_lib("gns3fy"), exception=GNS3FY_IMP_ERR)
-    result = dict(changed=False)
+    #result = dict(changed=False, nodes_inventory=None, total_nodes=None)
+    result = dict(changed=False, nodes_inventory=None)
 
     server_url = module.params["url"]
     server_port = module.params["port"]
@@ -118,11 +103,6 @@ def main():
     server_password = module.params["password"]
     project_name = module.params["project_name"]
     project_id = module.params["project_id"]
-    data = module.params["data"]
-    dest = module.params["dest"]
-    state = module.params["state"]
-    if state == "present" and data is None:
-        module.fail_json(msg="Parameter needs to be passed: data", **result)
 
     # Create server session
     server = Gns3Connector(
@@ -133,35 +113,16 @@ def main():
         project = Project(name=project_name, connector=server)
     elif project_id is not None:
         project = Project(project_id=project_id, connector=server)
-    if project is None:
-        module.fail_json(msg="Could not retrieve project. Check name", **result)
 
     # Retrieve project info
     project.get()
 
-    # Try to get file data
-    try:
-        file_data = project.get_file(path=dest)
-    except Exception as err:
-        if "Not Found" in str(err):
-            file_data = None
-        else:
-            module.fail_json(msg=str(err), exception=traceback.format_exc())
-
-    if state == "absent":
-        if file_data is None or file_data == "":
-            result.update(changed=False)
-        else:
-            # Delete project file data
-            # As of now (GNS3 v2.2.rc5) the DELETE method is not allowed
-            project_write_file(module, project, dest, "")
-            result.update(changed=True)
-    elif state == "present":
-        if file_data == data:
-            result.update(changed=False)
-        else:
-            project_write_file(module, project, dest, data)
-            result.update(changed=True)
+    nodes_inventory = project.nodes
+    for _n in nodes_inventory:
+        result.update(
+            #nodes_inventory=_n, total_nodes=len(nodes_inventory.keys())
+            nodes_inventory=_n
+        )
 
     module.exit_json(**result)
 

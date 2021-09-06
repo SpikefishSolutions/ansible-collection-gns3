@@ -202,11 +202,13 @@ def return_project_data(project):
     return dict(
         name=project.name,
         project_id=project.project_id,
-        status=project.status,
+        scene_width=project.scene_width,
+        scene_height=project.scene_height,
         path=project.path,
         auto_close=project.auto_close,
         auto_open=project.auto_open,
         auto_start=project.auto_start,
+        status=project.status,
         filename=project.filename,
     )
 
@@ -284,6 +286,11 @@ def main():
             ),
             project_name=dict(type="str", default=None),
             project_id=dict(type="str", default=None),
+            scene_width=dict(type="int", default=2000),
+            scene_height=dict(type="int", default=1000),
+            auto_close=dict(type="bool", default="true"),
+            auto_open=dict(type="bool", default="false"),
+            auto_start=dict(type="bool", default="false"),
             nodes_state=dict(type="str", choices=["started", "stopped"]),
             nodes_strategy=dict(
                 type="str", choices=["all", "one_by_one"], default="all"
@@ -308,6 +315,11 @@ def main():
     server_user = module.params["user"]
     server_password = module.params["password"]
     state = module.params["state"]
+    scene_width = module.params["scene_width"]
+    scene_height = module.params["scene_height"]
+    auto_close = module.params["auto_close"]
+    auto_open = module.params["auto_open"]
+    auto_start = module.params["auto_start"]
     project_name = module.params["project_name"]
     project_id = module.params["project_id"]
     nodes_state = module.params["nodes_state"]
@@ -320,13 +332,13 @@ def main():
     try:
         # Create server session
         server = Gns3Connector(
-            url=f"{server_url}:{server_port}", user=server_user, cred=server_password
+            url="%s:%s" % (server_url, server_port), user=server_user, cred=server_password
         )
         # Define the project
         if project_name is not None:
-            project = Project(name=project_name, connector=server)
+            project = Project(name=project_name,  scene_height=scene_height, scene_width=scene_width, auto_close=auto_close, connector=server)
         elif project_id is not None:
-            project = Project(project_id=project_id, connector=server)
+            project = Project(project_id=project_id, scene_height=scene_height, scene_width=scene_width, auto_close=auto_close, connector=server)
     except Exception as err:
         module.fail_json(msg=str(err), **result)
 

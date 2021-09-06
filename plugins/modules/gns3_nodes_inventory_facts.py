@@ -70,7 +70,7 @@ import traceback
 
 GNS3FY_IMP_ERR = None
 try:
-    from gns3fy import Gns3Connector, Project
+    from gns3fy import Gns3Connector, Project, Node
 
     HAS_GNS3FY = True
 except ImportError:
@@ -116,10 +116,49 @@ def main():
     # Retrieve project info
     project.get()
 
-    nodes_inventory = project.nodes_inventory()
-    result.update(
-        nodes_inventory=nodes_inventory, total_nodes=len(nodes_inventory.keys())
-    )
+    nodes_inventory = project.nodes
+    for _n in nodes_inventory: 
+        result[_n.name] = dict(
+                project_id         = _n.project_id,
+                node_id            = _n.node_id,
+                compute_id         = _n.compute_id,
+                node_type          = _n.node_type,
+#               connector          = _n.connector,
+                template_id        = _n.template_id,
+                template           = _n.template,
+                node_directory     = _n.node_directory,
+                status             = _n.status,
+                ports              = _n.ports, 
+                port_name_format   = _n.port_name_format,
+                port_segment_size  = _n.port_segment_size,
+                first_port_name    = _n.first_port_name,
+                properties         = _n.properties,
+                locked             = _n.locked,
+                label              = _n.label,
+                console            = _n.console,
+                console_host       = _n.console_host,
+                console_auto_start = _n.console_auto_start,
+                command_line       = _n.command_line,
+                custom_adapters    = _n.custom_adapters,
+                height             = _n.height,
+                width              = _n.width,
+                symbol             = _n.symbol,
+                x                  = _n.x,
+                y                  = _n.y,
+                z                  = _n.z,
+                )
+        if isinstance(_n.properties, dict):
+            hd_image_names = {
+                "hda_disk_image": "hda_disk.qcow2",
+                "hdb_disk_image": "hdb_disk.qcow2", 
+                "hdc_disk_image": "hdc_disk.qcow2", 
+                "hdd_disk_image": "hdd_disk.qcow2", 
+            }
+            for disk_image in hd_image_names:
+                if disk_image in _n.properties:
+                    if _n.properties[disk_image] != "":
+                        key = "_".join([disk_image, "real"])
+                        _n.properties[key] = hd_image_names[disk_image]
 
     module.exit_json(**result)
 

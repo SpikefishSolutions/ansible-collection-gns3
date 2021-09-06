@@ -89,7 +89,7 @@ def main():
     server_password = module.params["password"]
 
     server = Gns3Connector(
-        url=f"{server_url}:{server_port}", user=server_user, cred=server_password
+        url="%s:%s" % (server_url, server_port), user=server_user, cred=server_password
     )
     _version = server.get_version()
     result.update(local_compute=_version["local"], version=_version["version"])

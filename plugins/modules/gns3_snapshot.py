@@ -152,7 +152,7 @@ def main():
     try:
         # Create server session
         server = Gns3Connector(
-            url=f"{server_url}:{server_port}", user=server_user, cred=server_password
+            url="%s:%s" % (server_url, server_port), user=server_user, cred=server_password
         )
 
         # Define the project
