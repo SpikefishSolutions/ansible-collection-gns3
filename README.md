@@ -12,7 +12,7 @@ pip install gns3fy
 This collections is packaged under ansible-galaxy, so to install it you need [mazer from Ansible Projects](https://galaxy.ansible.com/docs/mazer/index.html):
 
 ```
-mazer install davidban77.gns3
+ansible-galaxy collection build
 ```
 
 ## Features
